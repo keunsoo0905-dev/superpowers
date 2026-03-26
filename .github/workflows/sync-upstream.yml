@@ -1,0 +1,92 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # 매일 오전 9시(KST) = UTC 0시에 체크
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/obra/superpowers.git
+          git fetch upstream main
+
+      - name: Check for new commits
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "Upstream is $BEHIND commits ahead"
+
+      - name: Create sync branch
+        if: steps.check.outputs.behind != '0'
+        id: branch
+        run: |
+          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+          git checkout -b "$BRANCH" upstream/main
+          git push -u origin "$BRANCH"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Close existing sync PRs
+        if: steps.check.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list --search "head:sync/" --state open --json number -q '.[].number')
+          for PR in $EXISTING; do
+            gh pr close "$PR" --comment "새로운 sync PR로 대체됩니다."
+          done
+
+      - name: Generate PR body
+        if: steps.check.outputs.behind != '0'
+        id: body
+        env:
+          BEHIND: ${{ steps.check.outputs.behind }}
+        run: |
+          {
+            echo "body<<PREOF"
+            echo "## Upstream 변경사항"
+            echo ""
+            echo "upstream(obra/superpowers)에서 **${BEHIND}개** 새 커밋이 감지되었습니다."
+            echo ""
+            echo "### 최근 변경 내역"
+            echo '```'
+            git log --oneline "origin/main..upstream/main" | head -20
+            echo '```'
+            echo ""
+            echo "### 확인 사항"
+            echo "- [ ] 변경 내용 확인"
+            echo "- [ ] 내 커스텀과 충돌 여부 확인"
+            echo "- [ ] merge 또는 cherry-pick 결정"
+            echo ""
+            echo "> 자동 생성된 sync PR입니다."
+            echo "PREOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create PR
+        if: steps.check.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BEHIND: ${{ steps.check.outputs.behind }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          PR_BODY: ${{ steps.body.outputs.body }}
+        run: |
+          gh pr create \
+            --title "Upstream sync: ${BEHIND} new commits" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH"
