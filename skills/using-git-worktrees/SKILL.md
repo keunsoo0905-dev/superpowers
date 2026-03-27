@@ -206,6 +206,59 @@ Ready to implement auth feature
 - Auto-detect and run project setup
 - Verify clean test baseline
 
+## Cleanup
+
+### After Work Complete
+
+Use **finishing-a-development-branch** skill — it handles merge/PR + worktree removal.
+
+### Manual Cleanup
+
+**Safety checks before removal (REQUIRED):**
+
+```bash
+# 1. Check uncommitted changes (including untracked)
+git -C <worktree-path> status -u
+
+# 2. Check unpushed commits (skip if no remote branch)
+git -C <worktree-path> rev-parse --verify origin/<branch> 2>/dev/null && \
+  git -C <worktree-path> log origin/<branch>..<branch> --oneline
+
+# 3. Check stash
+git -C <worktree-path> stash list
+```
+
+**If any check shows pending work:** Warn user, do NOT proceed without explicit confirmation.
+
+**If all clear (or user explicitly confirms force):**
+
+```bash
+git worktree remove <worktree-path>
+git worktree prune    # Clean stale metadata
+```
+
+### Stale Worktree Detection
+
+```bash
+# List all worktrees
+git worktree list
+
+# Find worktrees whose branch was already deleted
+git worktree list --porcelain | grep -A1 'worktree' | grep 'branch'
+# Cross-check with: git branch -l
+```
+
+### Quick Cleanup Reference
+
+| Situation | Action |
+|-----------|--------|
+| Work complete, merged/PR'd | `git worktree remove <path>` |
+| Abandoned experiment (user confirms) | `git worktree remove --force <path>` |
+| Branch deleted but worktree remains | `git worktree prune` |
+| User says "just delete it" | Skip safety checks, force remove |
+| Uncommitted changes found | STOP — warn user first |
+| Unpushed commits found | STOP — warn user first |
+
 ## Integration
 
 **Called by:**
