@@ -112,6 +112,33 @@ When multiple skills could apply, use this order:
 
 The skill itself tells you which.
 
+## Codex Integration Points
+
+Codex 플러그인이 설치되어 있으면 두 시점에서 교차검증을 활용할 수 있다. 모든 Codex 연동은 **수동 트리거** — 사용자에게 질문 후 승인 시에만 실행한다.
+
+### 1. Plan Review (writing-plans 연동)
+
+| 시점 | 동작 |
+|------|------|
+| `writing-plans` self-review 완료 후 | 사용자에게 Codex 플랜 리뷰 여부 질문 |
+| 승인 시 | `/codex:rescue --wait`로 플랜을 adversarial review |
+| 결과 | Codex 피드백 제시 → 플랜 수정 여부 재질문 |
+
+### 2. Code Cross-Verification (requesting-code-review 연동)
+
+| 시점 | 동작 |
+|------|------|
+| superpowers code-reviewer 완료 후 | 사용자에게 Codex 교차검증 여부 질문 |
+| 승인 시 | `/codex:review --wait`로 동일 git range 리뷰 |
+| 결과 | 두 리뷰 결과를 공통/차이점으로 비교 분석 |
+
+### Codex 사용 가능 여부 확인
+
+Codex 관련 질문을 하기 전에 설치 상태를 확인한다:
+- `/codex:setup`이 실행된 세션이거나
+- `codex` 커맨드가 PATH에 존재하면 질문 제시
+- 설치되어 있지 않으면 Codex 관련 질문을 건너뛴다
+
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.

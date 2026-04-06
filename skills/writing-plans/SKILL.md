@@ -131,9 +131,43 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
+## Codex Plan Review (Optional)
+
+After self-review, ask the user whether to run a Codex plan review before execution.
+
+**Prompt the user:**
+
+> "플랜 작성이 완료되었습니다. Codex로 플랜의 설계 결정과 잠재적 위험을 검증할까요?"
+>
+> 1. **Codex 플랜 리뷰 실행** — Codex가 플랜의 아키텍처, 트레이드오프, 누락된 고려사항을 도전적으로 검토
+> 2. **건너뛰고 실행으로 이동** — 바로 실행 단계로 진행
+
+**If user chooses Codex review:**
+
+1. Read the saved plan file content
+2. Run `/codex:rescue` with the plan as context:
+
+```
+/codex:rescue --wait Review this implementation plan as an adversarial reviewer.
+Challenge the architecture decisions, identify missing edge cases, evaluate
+the task decomposition, and flag any risks that could cause rework.
+
+<plan>
+[plan file content]
+</plan>
+
+Output: For each concern, state what could go wrong, why it matters,
+and a concrete suggestion. End with a ship/no-ship assessment.
+```
+
+3. Present Codex findings to the user verbatim
+4. If Codex flags material issues, ask: "Codex 피드백을 반영하여 플랜을 수정할까요?"
+   - If yes → revise the plan inline, re-run self-review
+   - If no → proceed to Execution Handoff as-is
+
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving the plan (and optional Codex review), offer execution choice:
 
 **"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
 

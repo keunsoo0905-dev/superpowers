@@ -40,8 +40,40 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 - `{HEAD_SHA}` - Ending commit
 - `{DESCRIPTION}` - Brief summary
 
-**3. Act on feedback:**
-- Fix Critical issues immediately
+**3. Codex Cross-Verification (Optional):**
+
+After receiving superpowers code-reviewer results, ask the user:
+
+> "superpowers 코드 리뷰가 완료되었습니다. Codex로 교차검증을 실행할까요?"
+>
+> 1. **Codex 교차검증 실행** — Codex `/codex:review`로 동일한 변경사항을 독립 리뷰
+> 2. **건너뛰기** — superpowers 리뷰 결과만으로 진행
+
+**If user chooses cross-verification:**
+
+1. Run `/codex:review --wait` against the same git range
+2. Present both results side by side:
+
+```markdown
+## 교차검증 결과 비교
+
+### 공통 발견 (양쪽 모두 지적)
+- [both reviewers flagged] — 높은 신뢰도, 우선 수정
+
+### superpowers only
+- [issues only superpowers found]
+
+### Codex only
+- [issues only Codex found]
+
+### 판정 차이
+- superpowers: [verdict] / Codex: [verdict]
+```
+
+3. If verdicts conflict, highlight the disagreement and ask the user to decide
+
+**4. Act on feedback:**
+- Fix Critical issues immediately (especially cross-verified ones)
 - Fix Important issues before proceeding
 - Note Minor issues for later
 - Push back if reviewer is wrong (with reasoning)
